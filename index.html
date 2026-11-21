@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Допуски</title>
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Допуски">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#d9480f">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--tx:#14171c;--mu:#5d6572;--ac:#d9480f;--bd:#dde1e7;--ok:#0b7a3b;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#14171c;--card:#1e232b;--tx:#eef0f3;--mu:#99a2af;--ac:#ff8a4c;--bd:#323946;--ok:#5fd48a;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14171c;--card:#1e232b;--tx:#eef0f3;--mu:#99a2af;--ac:#ff8a4c;--bd:#323946;--ok:#5fd48a;color-scheme:dark}
+*{box-sizing:border-box}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0 auto;background:var(--bg);color:var(--tx);font:16px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;padding:16px;max-width:560px}
+h1{font-size:20px;margin:4px 0 12px}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:14px;margin-bottom:12px}
+label{display:block;font-size:13px;color:var(--mu);margin:0 0 4px}
+input,select{width:100%;padding:12px;font:inherit;font-size:18px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx)}
+select:disabled{opacity:.4}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.big{display:flex;justify-content:space-between;align-items:baseline;padding:12px 0;border-bottom:1px solid var(--bd)}
+.big:last-child{border:0}
+.big span{color:var(--mu);font-size:14px}
+.big b{font-size:26px;color:var(--ok);font-variant-numeric:tabular-nums}
+.res{display:flex;justify-content:space-between;padding:6px 0;border-bottom:1px solid var(--bd);font-size:14px}
+.res:last-child{border:0}.res b{font-variant-numeric:tabular-nums}
+.note{font-size:12.5px;color:var(--mu)}
+.err{color:var(--ac);font-size:14px}
+</style>
+</head>
+<body>
+<h1>Допуски</h1>
+
+<div class="card">
+  <label>Размер, мм</label>
+  <input id="tn" type="number" inputmode="decimal" value="50">
+  <div class="row" style="margin-top:12px">
+    <div><label>Поле допуска</label>
+      <select id="tl">
+        <optgroup label="Вал">
+          <option value="h" selected>h</option><option value="g">g</option><option value="f">f</option><option value="e">e</option><option value="d">d</option><option value="js">js</option><option value="k">k</option><option value="m">m</option><option value="n">n</option><option value="p">p</option>
+        </optgroup>
+        <optgroup label="Отверстие">
+          <option value="H">H</option><option value="G">G</option><option value="F">F</option><option value="E">E</option><option value="D">D</option><option value="JS">JS</option>
+        </optgroup>
+        <optgroup label="Длина">
+          <option value="P12">±IT12/2</option><option value="P14">±IT14/2</option><option value="P16">±IT16/2</option><option value="P17">±IT17/2</option>
+        </optgroup>
+        <optgroup label="Другое">
+          <option value="custom">Свой допуск</option>
+        </optgroup>
+      </select></div>
+    <div><label>Квалитет</label>
+      <select id="tg"><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option selected>12</option><option>13</option><option>14</option><option>15</option><option>16</option></select></div>
+  </div>
+  <div id="cw" style="margin-top:12px;display:none"><label>Свой допуск: ±0.1 или +0.2/-0.1</label><input id="tx" type="text" autocapitalize="off" autocorrect="off" spellcheck="false" value="±0.1"></div>
+</div>
+
+<div class="card" id="main"></div>
+<div class="card" id="more"></div>
+
+<p class="note">Вал — маленькая буква, отверстие — большая. Квалитеты 5–16, размеры до 500 мм (свыше 500 мм до 3150 мм только h, H, js, JS). Длины: ±IT12/2, ±IT14/2, ±IT16/2, ±IT17/2. «Свой допуск» — например ±0.1 или +0.2/-0.1.</p>
+
+<script>
+var $=function(i){return document.getElementById(i)};
+var n=function(i){var v=parseFloat($(i).value);return isNaN(v)?0:v};
+function row(a,b){return '<div class="res"><span>'+a+'</span><b>'+b+'</b></div>'}
+function big(a,b){return '<div class="big"><span>'+a+'</span><b>'+b+'</b></div>'}
+var RG=[3,6,10,18,30,50,80,120,180,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150];
+var IT={
+5:[4,5,6,8,9,11,13,15,18,20,23,25,27,32,36,40,47,55,65,null,null],
+6:[6,8,9,11,13,16,19,22,25,29,32,36,40,44,50,56,66,78,92,110,135],
+7:[10,12,15,18,21,25,30,35,40,46,52,57,63,70,80,90,105,125,150,175,210],
+8:[14,18,22,27,33,39,46,54,63,72,81,89,97,110,125,140,165,195,230,280,330],
+9:[25,30,36,43,52,62,74,87,100,115,130,140,155,175,200,230,260,310,370,440,540],
+10:[40,48,58,70,84,100,120,140,160,185,210,230,250,280,320,360,420,500,600,700,860],
+11:[60,75,90,110,130,160,190,220,250,290,320,360,400,440,500,560,660,780,920,1100,1350],
+12:[100,120,150,180,210,250,300,350,400,460,520,570,630,700,800,900,1050,1250,1500,1750,2100],
+13:[140,180,220,270,330,390,460,540,630,720,810,890,970,1100,1250,1400,1650,1950,2300,2800,3300],
+14:[250,300,360,430,520,620,740,870,1000,1150,1300,1400,1550,1750,2000,2300,2600,3100,3700,4400,5400],
+15:[400,480,580,700,840,1000,1200,1400,1600,1850,2100,2300,2500,2800,3200,3600,4200,5000,6000,7000,8600],
+16:[600,750,900,1100,1300,1600,1900,2200,2500,2900,3200,3600,4000,4400,5000,5600,6600,7800,9200,11000,13500]};
+IT[17]=IT[12].map(function(x){return x*10});
+var FD={
+d:[-20,-30,-40,-50,-65,-80,-100,-120,-145,-170,-190,-210,-230],
+e:[-14,-20,-25,-32,-40,-50,-60,-72,-85,-100,-110,-125,-135],
+f:[-6,-10,-13,-16,-20,-25,-30,-36,-43,-50,-56,-62,-68],
+g:[-2,-4,-5,-6,-7,-9,-10,-12,-14,-15,-17,-18,-20],
+k:[0,1,1,1,2,2,2,3,3,4,4,4,5],
+m:[2,4,6,7,8,9,11,13,15,17,20,21,23],
+n:[4,8,10,12,15,17,20,23,27,31,34,37,40],
+p:[6,12,15,18,22,26,32,37,43,50,56,62,68]};
+function f3(x){var s=(Math.round(x*10000)/10000).toFixed(4);return s.charAt(s.length-1)=='0'?s.slice(0,-1):s}
+function sg(x){return (x>0?'+':'')+f3(x)}
+var LR=[3,6,30,120,400,1000,2000,4000];
+var LT={f:[.05,.05,.1,.15,.2,.3,.5,null],m:[.1,.1,.2,.3,.5,.8,1.2,2],c:[.2,.3,.5,.8,1.2,2,3,4],v:[null,.5,1,1.5,2.5,4,6,8]};
+function lenTol(N,s){
+  var m,v;
+  if(/^[fmcvFMCV]$/.test(s)){
+    var k=s.toLowerCase();
+    if(!(N>=0.5&&N<=4000))return {err:'Общие допуски ISO 2768: размер от 0,5 до 4000 мм'};
+    var i=0;while(N>LR[i])i++;
+    v=LT[k][i];
+    if(v==null)return {err:'Для этого класса и размера допуск не задан'};
+    return {up:v,lo:-v,name:'ISO 2768-'+k};
+  }
+  if(m=s.match(/^(?:±|\+-|\+\/-)\s*(\d*\.?\d+)$/)){v=+m[1];return {up:v,lo:-v,name:'Симметричный'}}
+  if(m=s.match(/^([+-]?\d*\.?\d+)\s*[\/ ]\s*([+-]?\d*\.?\d+)$/)){
+    var u=+m[1],l=+m[2];
+    if(u<l){var t=u;u=l;l=t}
+    return {up:u,lo:l,name:'Заданный'};
+  }
+  return null;
+}
+function getTf(){var l=$('tl').value;if(l.charAt(0)=='P'&&l.length==3)return 'js'+l.slice(1);if(l=='pm')return 'js'+$('tg').value;if(l.indexOf('L:')==0)return l.slice(2);if(l=='custom')return $('tx').value.trim();return l+$('tg').value}
+function sync(){var l=$('tl').value,x=((l.charAt(0)=='P'&&l.length==3)||l=='custom');$('tg').disabled=x;$('cw').style.display=l=='custom'?'':'none';tcalc()}
+function tcalc(){
+  var N=n('tn'),m=getTf().match(/^(js|JS|[a-zA-Z])(\d{1,2})$/);
+  var err=function(t){$('main').innerHTML='<div class="err">'+t+'</div>';$('more').style.display='none'};
+  $('more').style.display='';
+  var raw=getTf().replace(/,/g,'.').replace(/[−–]/g,'-'),alt=lenTol(N,raw);
+  if(alt){
+    if(alt.err){err(alt.err);return}
+    $('main').innerHTML=big('Максимум',f3(N+alt.up))+big('Середина',f3(N+(alt.up+alt.lo)/2))+big('Минимум',f3(N+alt.lo));
+    $('more').innerHTML=row(alt.name,f3(alt.up-alt.lo))+row('Верхнее отклонение',sg(alt.up))+row('Нижнее отклонение',sg(alt.lo));
+    return;
+  }
+  if(!(N>0&&N<=3150)){err('Для квалитетов размер от 0 до 3150 мм');return}
+  if(!m){err('Введите допуск: h12, H7, m, ±0.1 или +0.2/-0.1');return}
+  var g=+m[2],L=m[1],idx=0;
+  while(N>RG[idx])idx++;
+  if(!IT[g]){err('Квалитет от 5 до 16');return}
+  var it=IT[g][idx],up,lo,shaft=(L===L.toLowerCase()),l=L.toLowerCase();
+  if(it==null){err('Для размеров свыше 2000 мм квалитет от 6');return}
+  if(idx>12&&l!='h'&&l!='js'){err('Свыше 500 мм доступны h, H, js, JS');return}
+  if(l=='js'){up=it/2;lo=-it/2}
+  else if(shaft){
+    if(l=='h'){up=0;lo=-it}
+    else if(l.length==1&&'defg'.indexOf(l)>=0){up=FD[l][idx];lo=up-it}
+    else if(l=='k'){lo=(g>=5&&g<=7)?FD.k[idx]:0;up=lo+it}
+    else if(l=='m'||l=='n'||l=='p'){lo=FD[l][idx];up=lo+it}
+    else{err('Для вала: h, g, f, e, d, js, k, m, n, p');return}
+  }else{
+    if(l=='h'){lo=0;up=it}
+    else if(l.length==1&&'defg'.indexOf(l)>=0){lo=-FD[l][idx];up=lo+it}
+    else{err('Для отверстия: H, G, F, E, D, JS');return}
+  }
+  $('main').innerHTML=
+    big('Максимум',f3(N+up/1000))+
+    big('Середина',f3(N+(up+lo)/2000))+
+    big('Минимум',f3(N+lo/1000));
+  $('more').innerHTML=
+    row('Допуск IT'+g,f3(it/1000))+
+    row('Верхнее отклонение',sg(up/1000))+
+    row('Нижнее отклонение',sg(lo/1000));
+}
+$('tn').oninput=tcalc;$('tl').onchange=sync;$('tg').onchange=tcalc;$('tx').oninput=tcalc;
+sync();
+if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('sw.js').catch(function(){})})}
+</script>
+</body>
+</html>
